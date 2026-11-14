@@ -108,7 +108,12 @@ h1, h2, h3, h4 {
   margin-inline: auto;
   padding-inline: var(--gutter);
 }
-
+.equipo{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 44% center
+}
 /* ---------- Accessibility helpers ---------- */
 .visually-hidden {
   position: absolute;
