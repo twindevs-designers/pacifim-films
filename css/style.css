@@ -467,6 +467,7 @@ section {
   height: 34px;
   background: linear-gradient(var(--gold), transparent);
   animation: pulse-line 2s ease-in-out infinite;
+  will-change: opacity;
 }
 @keyframes pulse-line {
   0%, 100% { opacity: 0.3; }
