@@ -271,7 +271,6 @@ section {
 .site-header.is-scrolled {
   padding-block: 0.6rem;
   background: rgba(8, 7, 10, 0.86);
-  backdrop-filter: blur(10px);
   border-color: var(--gold-line);
 }
 .site-header .container {
