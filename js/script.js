@@ -128,6 +128,81 @@
   if (scrollLeftBtn) scrollLeftBtn.addEventListener("click", function () { scrollFilmstrip(-1); });
   if (scrollRightBtn) scrollRightBtn.addEventListener("click", function () { scrollFilmstrip(1); });
 
+  /* ---------- Galería: desplazamiento automático suave ----------
+     Empieza cuando la galería entra en pantalla, se pausa al pasar el
+     mouse / tocar / enfocar, y se repite en bucle sin saltos. */
+  (function autoScrollFilmstrip() {
+    if (!filmstrip || prefersReducedMotion) return;
+
+    var SPEED = 28;           /* píxeles por segundo (sube o baja a tu gusto) */
+    var RESUME_TOUCH = 2500;  /* ms de espera tras tocar o usar la rueda */
+
+    var originals = Array.prototype.slice.call(filmstrip.children);
+    if (originals.length < 2) return;
+
+    /* Duplicamos los marcos para que el bucle sea continuo */
+    originals.forEach(function (frame) {
+      var clone = frame.cloneNode(true);
+      clone.setAttribute("aria-hidden", "true");
+      var img = clone.querySelector("img");
+      if (img) img.alt = "";
+      filmstrip.appendChild(clone);
+    });
+    filmstrip.classList.add("is-autoscroll");
+
+    var pos = 0, last = 0, rafId = null, hold = false, resumeTimer = null;
+
+    function loopWidth() {
+      var kids = filmstrip.children;
+      return kids[originals.length].offsetLeft - kids[0].offsetLeft;
+    }
+
+    function tick(now) {
+      if (!last) last = now;
+      var dt = Math.min((now - last) / 1000, 0.1);
+      last = now;
+
+      if (!hold) {
+        /* Si el usuario movió la galería a mano, partimos de ahí */
+        if (Math.abs(filmstrip.scrollLeft - pos) > 2) pos = filmstrip.scrollLeft;
+        pos += SPEED * dt;
+        var w = loopWidth();
+        if (pos >= w) pos -= w;
+        filmstrip.scrollLeft = pos;
+      }
+      rafId = requestAnimationFrame(tick);
+    }
+
+    function start() { if (!rafId) { last = 0; rafId = requestAnimationFrame(tick); } }
+    function stop() { cancelAnimationFrame(rafId); rafId = null; }
+
+    function pause() { hold = true; clearTimeout(resumeTimer); }
+    function resume(delay) {
+      clearTimeout(resumeTimer);
+      resumeTimer = setTimeout(function () { hold = false; }, delay);
+    }
+
+    filmstrip.addEventListener("mouseenter", pause);
+    filmstrip.addEventListener("mouseleave", function () { resume(300); });
+    filmstrip.addEventListener("focusin", pause);
+    filmstrip.addEventListener("focusout", function () { resume(300); });
+    filmstrip.addEventListener("touchstart", pause, { passive: true });
+    filmstrip.addEventListener("touchend", function () { resume(RESUME_TOUCH); }, { passive: true });
+    filmstrip.addEventListener("wheel", function () { pause(); resume(RESUME_TOUCH); }, { passive: true });
+    [scrollLeftBtn, scrollRightBtn].forEach(function (btn) {
+      if (btn) btn.addEventListener("click", function () { pause(); resume(RESUME_TOUCH); });
+    });
+
+    /* Arranca solo cuando la galería está a la vista */
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(function (entries) {
+        if (entries[0].isIntersecting) { start(); } else { stop(); }
+      }, { threshold: 0.3 }).observe(filmstrip);
+    } else {
+      start();
+    }
+  })();
+
   /* ---------- Revelado al hacer scroll ---------- */
   var revealEls = document.querySelectorAll(".reveal");
   if ("IntersectionObserver" in window && !prefersReducedMotion) {
